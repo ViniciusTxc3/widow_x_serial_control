@@ -10,7 +10,7 @@ import sys
 import matplotlib.patches as patches
 
 from collections import deque
-sys.path.append('utils/')
+sys.path.append('general/')
 from threading import Lock
 from threadhandler import ThreadHandler
 
@@ -25,7 +25,11 @@ class widow_x():
         self.START_UP_CMD = [0xFF, 0x00, 0x00, 0x00, 0xC8, 0x00, 0xC8, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x80, 0x00, 0x70, 0x7C]
         self.GO_SLEEP_CMD = [0xff, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x60, 0x9f]
         self.EMERGENCY_STOP_CMD = [0xff, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x11, 0xee]
-        self.START_POSITION_CMD = [0xFF, 0x04, 0xB0, 0x01, 0x12, 0x00, 0x5B, 0x00, 0x60, 0x02, 0x00, 0x01, 0x00, 0x7D, 0x00, 0x00, 0xFD]
+        #self.START_POSITION_CMD = [0xFF, 0x04, 0xB0, 0x01, 0x12, 0x00, 0x5B, 0x00, 0x60, 0x02, 0x00, 0x01, 0x00, 0x7D, 0x00, 0x00, 0xFD]
+        self.START_POSITION_CMD = [0xFF, 0x05, 0x0A, 0x00, 0x7F, 0x00, 0xCA, 0x00, 0x5A, 0x02, 0x00, 0x01, 0x00, 0x7D, 0x00, 0x00, 0xCD]
+        self.POSICAO_INICIAL_X = 1290
+        self.POSICAO_INICIAL_Y = 127
+        self.POSICAO_INICIAL_Z = 202
         #LIMITES MÁXIMOS
         self.LIMITE_SUPERIOR_X = 0
         self.LIMITE_INFERIOR_X = 4059
@@ -40,13 +44,22 @@ class widow_x():
         self.LIMITE_INFERIOR_GRIPPER = 0
         self.LIMITE_SUPERIOR_GRIPPER = 512
         #LIMITES SEGUROS
-        ###NECESSARIO ANALISE
+        self.LIMITE_SUPERIOR_SEGURANCA_X = 2264
+        self.LIMITE_INFERIOR_SEGURANCA_X = 991
+        self.LIMITE_SUPERIOR_SEGURANCA_Y = 400
+        self.LIMITE_INFERIOR_SEGURANCA_Y = 122
+        self.LIMITE_SUPERIOR_SEGURANCA_Z = 350
+        self.LIMITE_INFERIOR_SEGURANCA_Z = 139
+        self.RANGE_MOVIMENTO_X = self.LIMITE_SUPERIOR_SEGURANCA_X - self.LIMITE_INFERIOR_SEGURANCA_X
+        self.RANGE_MOVIMENTO_Y = self.LIMITE_SUPERIOR_SEGURANCA_Y - self.LIMITE_INFERIOR_SEGURANCA_Y
+        self.RANGE_MOVIMENTO_Z = self.LIMITE_SUPERIOR_SEGURANCA_Z - self.LIMITE_INFERIOR_SEGURANCA_Z
         #VALORES DO PACKAGE DE COMUNICAÇÃO
         self.HEADER = 0xFF
         self.EXTENDED_BYTE = 0x00 #move arm to position
         self.BUTTON_BYTE = 0x00 #do nothing
         self.TIME = 2000 #time in miliseconds
-        self.DELTA = 125 #delta value from the package. Range: 0 - 255
+        self.DELTA = 50 #delta value from the package. Range: 0 - 255
+        self.FREQ_MAX = 80
 
         #VARIAVEIS DE STATUS
         self.isConnected = False
