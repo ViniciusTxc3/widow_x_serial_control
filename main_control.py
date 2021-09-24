@@ -1,22 +1,21 @@
 
-from ctrl_widow_x import widow_x as wx
+from ctrl_widow_x import widow_x
 
 
 
 def main():
-    
+    wx = widow_x()
     wx.connect()
 
-    x_inicial = 2048
-    y_inicial = 250
-    z_inicial = 225
+    x_inicial = 1700
+    y_inicial = 274
+    z_inicial = 91
     step = 20
-
     if wx.isConnected:
-        for i in range(3):
-            x = x_inicial + step*i
-            y = y_inicial + step*i
-            z = z_inicial + step*i
+        for i in range(1):
+            x = x_inicial
+            y = y_inicial
+            z = z_inicial
             wx.sendValue(x,y,z)
 
 

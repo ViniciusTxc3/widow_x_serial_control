@@ -2,7 +2,6 @@
 import socket
 import serial as sr
 import time
-import pygame
 
 import matplotlib.pyplot as plt
 import copy
@@ -20,11 +19,13 @@ class widow_x():
 
     def __init__(self):
         self.MODE = "cylindrical"
-        self.SET_CYLINDRICAL_MODE_CMD = [0xff, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x30, 0xcf], #Set 3D Cylindrical mode / straight wrist and go to home
+        self.SET_CYLINDRICAL_MODE_CMD = [0xff, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x30, 0xcf] #Set 3D Cylindrical mode / straight wrist and go to home
+        self.SET_CARTESIAN_MODE_CMD = [0xff, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x20, 0xdf]
         self.GO_HOME_CMD = [0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xdf] #tem que verificar se está certo
         self.START_UP_CMD = [0xFF, 0x00, 0x00, 0x00, 0xC8, 0x00, 0xC8, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x80, 0x00, 0x70, 0x7C]
         self.GO_SLEEP_CMD = [0xff, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x60, 0x9f]
         self.EMERGENCY_STOP_CMD = [0xff, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x11, 0xee]
+        self.START_POSITION_CMD = [0xFF, 0x04, 0xB0, 0x01, 0x12, 0x00, 0x5B, 0x00, 0x60, 0x02, 0x00, 0x01, 0x00, 0x7D, 0x00, 0x00, 0xFD]
         #LIMITES MÁXIMOS
         self.LIMITE_SUPERIOR_X = 0
         self.LIMITE_INFERIOR_X = 4059
@@ -35,7 +36,7 @@ class widow_x():
         self.LIMITE_INFERIOR_WRIST_ANGLE = 60
         self.LIMITE_SUPERIOR_WRIST_ANGLE = 120
         self.LIMITE_INFERIOR_WRIST_ROTATE = 0
-        self.LIMITE_SUPERIOR_WRIST_ANGLE = 1023
+        self.LIMITE_INFERIOR_WRIST_ROTATE = 1023
         self.LIMITE_INFERIOR_GRIPPER = 0
         self.LIMITE_SUPERIOR_GRIPPER = 512
         #LIMITES SEGUROS
@@ -57,10 +58,15 @@ class widow_x():
                                         stopbits = sr.STOPBITS_ONE,
                                         bytesize = sr.EIGHTBITS,
                                         parity = sr.PARITY_NONE,)
-        self.comunicacoSerial = comunicacaoSerial
-        flagConnected = startUp()
+        self.comunicacaoSerial = comunicacaoSerial
+        flagConnected = self.startUp()
         if flagConnected:
-            sendCmdWaitForReply(self.SET_CYLINDRICAL_MODE_CMD)
+            input("press enter")
+            print("SETANDO MODO CILINDRICO: ", self.SET_CYLINDRICAL_MODE_CMD)
+            self.sendCmdWaitForReply(self.SET_CYLINDRICAL_MODE_CMD)
+            time.sleep(1)
+            print("MOVENDO PARA POSIÇÃO INICIAL: ", self.START_POSITION_CMD)
+            self.sendCmdWaitForReply(self.START_POSITION_CMD)
             time.sleep(1)
         self.isConnected = flagConnected
         return flagConnected
@@ -83,13 +89,13 @@ class widow_x():
 
 
 
-    def sendCmdWaitForReply(self,cmd):
-        CHECK_RESPONSE = "\xff\x03\x00\x00\xfc"
+    def sendCmdWaitForReply(self,cmd,flagWaitForReply=True):
+        self.comunicacaoSerial.flushInput()
+        self.comunicacaoSerial.flushOutput()
         flagResposta = False
-        t0 = time.perf_counter()
         timeout = 1
         interacao = 0
-        ret = b'0x00'
+        ret = []
         while not flagResposta:
             while self.comunicacaoSerial.out_waiting > 0:
                 print("aguardando enviar todos os bytes...")
@@ -98,15 +104,41 @@ class widow_x():
                 print("aguardando enviar todos os bytes...")
             print("enviando -> ", cmd)
             res = []
-            time.sleep(0.5)
-            while isRXBufferEmpty(self) and not(time.perf_counter() - t0 > timeout):
-                time.sleep(0.001)
-            while not isRXBufferEmpty(self) and ret != b'\xfc':
-                ret = self.comunicacaoSerial.read()
-                res.append(ret)
-                time.sleep(0.01)
-            print(res)
+            if flagWaitForReply:
+                t0 = time.perf_counter()
+                while self.isRXBufferEmpty() and not(time.perf_counter() - t0 > timeout):
+                    time.sleep(0.001)
+                while not self.isRXBufferEmpty() and len(ret) != 5:
+                    ret = self.comunicacaoSerial.read()
+                    res.append(ret)
+                self.verifyResponse(res)
+                self.comunicacaoSerial.flushInput()
+                self.comunicacaoSerial.flushOutput()
+                print(res)
             flagResposta = True
+
+    def verifyResponse(self,res):
+        if(len(res) != 5):
+            print("RESPOSTA INCOMPLETA", res)
+        else:
+            print("RESPOSTA COMPLETA", res)
+            if(res[1] !=  b'\x03'):
+                print("FIRMWARE NAO CONFIGURADO PRO WIDOW_X")
+            else:
+                print("WIDOW_X -- CHECK")
+            if(res[2] == b'\x00'):
+                print("Cartesian - Normal Wrist")
+            if(res[2] == b'\x02'):
+                print("Cylindrical - Normal Wrist")
+            #if(res[2] == b'\x03'):
+            #    print("Cylindrical - Normal Wrist")
+            #if(res[2] == b'\x04'):
+            #    print("Cylindrical - 90° Wrist")
+            #if(res[2] == b'\x05'):
+            #    print("Backhoe/Joint Mode")
+            if(res[3] == b'\x00'):
+                print("FIM DA MENSAGEM")
+
 
     def isRXBufferEmpty(self):
         qtdeInput = self.comunicacaoSerial.in_waiting
@@ -157,13 +189,14 @@ class widow_x():
 
 
     #TODO: colocar a validação reais
-    def sendValue(self,x=0,y=250,z=225,gripper = 256,wrist = 90,wrist_rot = 512):
+    def sendValue(self,x=2048,y=250,z=225,gripper = 256,wrist = 90,wrist_rot = 512):
         #https://learn.trossenrobotics.com/arbotix/arbotix-communication-controllers/31-arm-link-reference.html
         print("enviando comando com posição")
-        x,y,z,gripper,wrist,wrist_rot = verificaLimites(x,y,z,gripper,wrist,wrist_rot)
+        print("x: " + str(x) + " y: "+str(y)+" z: "+str(z)+" wrist_angle: " + str(wrist) + " wrist_rot: " + str(wrist_rot) + " gripper: " + str(gripper))
+        #x,y,z,gripper,wrist,wrist_rot = self.verificaLimites(x,y,z,gripper,wrist,wrist_rot)
         posicoes = [x,y,z,wrist,wrist_rot,gripper]
-        package = preparePackage(posicoes)
-        sendCmdWaitForReply(package)
+        package = self.preparePackage(posicoes)
+        self.sendCmdWaitForReply(package,False)
 
 
     def preparePackage(self,posicoes):
@@ -178,12 +211,12 @@ class widow_x():
         package.append(self.DELTA)
         package.append(self.BUTTON_BYTE)
         package.append(self.EXTENDED_BYTE)
-        package.append(checkSum(package))
+        package.append(self.checkSum(package))
         print(package)
         return package
 
 
-    def checkSum(package):
+    def checkSum(self,package):
         soma = sum(package[1:-1])
         inv_check_sum = int(soma) & 0xFF
         checksum = 255 - inv_check_sum

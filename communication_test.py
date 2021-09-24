@@ -34,6 +34,7 @@ def main():
     cmdList = [
             #[0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xDF], #cartesian mode wrist 90 degree
             [0xff, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x30, 0xcf], #Set 3D Cylindrical mode / straight wrist and go to home
+            [0xFF, 0x07, 0x49, 0x00, 0xFA, 0x00, 0xE1, 0x00, 0x5A, 0x02, 0x00, 0x01, 0x00, 0x7D, 0x00, 0x00, 0xFA]
             #[0xFF, 0x02, 0x00, 0x00, 0xFA, 0x00, 0xE1, 0x00, 0x5A, 0x02, 0x00, 0x01, 0x00, 0x7D, 0x00, 0x00, 0x48],
             #pack,
             #[0xff, 0x1, 0x9c, 0x0, 0x96, 0x0, 0x96, 0x0, 0x5a, 0x2, 0x0, 0x0, 0x0, 0x80, 0x0, 0x0, 0x5a], #move x left
@@ -52,18 +53,19 @@ def main():
     if flagConnected:
         for cmd in cmdList:
             sendCmdWaitForReply(cmd)
+            input("Press Enter to continue...")
             time.sleep(1)
     input("Press Enter to continue...")
-    cmdList = []
-    cmdList.append(sendValue(2048,250,225))
-    cmdList.append(sendValue(2088,250,225))
-    cmdList.append(sendValue(2118,250,225))
-    cmdList.append(sendValue(2148,250,225))
-    cmdList.append(sendValue(2188,250,225))
-    if flagConnected:
-        for cmd in cmdList:
-            sendCmdWaitForReply(cmd)
-            time.sleep(1)
+    #cmdList = []
+    #cmdList.append(sendValue(2048,250,225))
+    #cmdList.append(sendValue(2088,250,225))
+    #cmdList.append(sendValue(2118,250,225))
+    #cmdList.append(sendValue(2148,250,225))
+    #cmdList.append(sendValue(2188,250,225))
+    #if flagConnected:
+    #    for cmd in cmdList:
+    #        sendCmdWaitForReply(cmd)
+    #        time.sleep(1)
 
 def isRXBufferEmpty(serial):
     qtdeInput = serial.in_waiting
