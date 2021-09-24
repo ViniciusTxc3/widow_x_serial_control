@@ -17,6 +17,7 @@ from threadhandler import ThreadHandler
 
 
 class widow_x():
+
     def __init__(self):
         self.MODE = "cylindrical"
         self.SET_CYLINDRICAL_MODE_CMD = [0xff, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x30, 0xcf], #Set 3D Cylindrical mode / straight wrist and go to home
@@ -45,6 +46,9 @@ class widow_x():
         self.BUTTON_BYTE = 0x00 #do nothing
         self.TIME = 2000 #time in miliseconds
         self.DELTA = 125 #delta value from the package. Range: 0 - 255
+
+        #VARIAVEIS DE STATUS
+        self.isConnected = False
 
     def connect(self):
         flagConnected = False
